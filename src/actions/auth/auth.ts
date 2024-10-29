@@ -41,6 +41,26 @@ export const authLogin = async (email: string, password: string) => {
         return null
     }
 };
+export const authRegister = async (fullName:string, email: string, password: string) => {
+
+    email = email.toLowerCase();
+
+    try {
+
+        await tesloApi.post<AuthResponse>('/auth/register', {
+            email,
+            password,
+            fullName
+        });
+        return true;
+
+
+
+    } catch (error) {
+        console.log(error)
+        return false
+    }
+};
 
 
 export const authCheckStatus = async() => {

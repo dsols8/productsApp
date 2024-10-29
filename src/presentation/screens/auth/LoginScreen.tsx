@@ -20,6 +20,7 @@ export const LoginScreen = ({ navigation }: Props) => {
     email: '',
     password: '',
   })
+  
   const { height } = useWindowDimensions();
 
   const onLogin = async () => {
