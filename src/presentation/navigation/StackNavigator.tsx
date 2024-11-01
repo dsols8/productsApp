@@ -11,7 +11,7 @@ export type RootStackParams = {
     LoginScreen: undefined;
     RegisterScreen: undefined;
     HomeScreen: undefined;
-    ProductScreen: { product: string };
+    ProductScreen: { productId: string };
 }
 
 
