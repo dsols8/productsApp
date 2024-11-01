@@ -1,16 +1,17 @@
 import React, { useRef } from 'react'
-import { FlatList } from 'react-native'
+import { FlatList, Image } from 'react-native'
 import { MainLayout } from '../../layouts/MainLayout'
 import { Button, ButtonGroup, Input, Layout, Text, useTheme } from '@ui-kitten/components'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProductById } from '../../../actions/products/get-product-by-id'
 import { RootStackParams } from '../../navigation/StackNavigator'
 import { StackScreenProps } from '@react-navigation/stack'
 import { ScrollView } from 'react-native-gesture-handler'
 import { FadeInImage } from '../../components/ui/FadeInImage'
-import { Gender, Size } from '../../../domain/entities/product'
+import { Gender, Product, Size } from '../../../domain/entities/product';
 import { MyIcon } from '../../components/ui/MyIcon'
 import { Formik } from 'formik'
+import { updateCreateProduct } from '../../../actions/products/update-create-product'
 
 
 const sizes: Size[] = [
@@ -38,6 +39,7 @@ export const ProductScreen = ({ route }: Props) => {
 
   const productIdRef = useRef(route.params.productId);
   const theme = useTheme();
+  const queryClient = useQueryClient();
 
   const { isLoading, data: product } = useQuery({
     queryKey: ['product', productIdRef.current],
@@ -47,6 +49,21 @@ export const ProductScreen = ({ route }: Props) => {
 
 
   //Mutation
+
+  const mutation = useMutation({
+    mutationFn: (data: Product) => updateCreateProduct({ ...data, id: productIdRef.current }),
+    onSuccess(data: Product) {
+      productIdRef.current = data.id;
+
+      queryClient.invalidateQueries({ queryKey: ['products', 'infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['product', data.id] });
+    },
+    onError(error) {
+      console.log(error)
+    },
+  })
+
+
 
   if (!product) {
     return (
@@ -59,7 +76,7 @@ export const ProductScreen = ({ route }: Props) => {
   return (
     <Formik
       initialValues={product}
-      onSubmit={values => console.log(values)}
+      onSubmit={mutation.mutate}
     >
 
       {
@@ -72,19 +89,34 @@ export const ProductScreen = ({ route }: Props) => {
             <ScrollView style={{ flex: 1 }}>
 
               {/* Imagenes del producto */}
-              <Layout>
-                <FlatList
-                  data={values.images}
-                  keyExtractor={(item) => item}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <FadeInImage
-                      uri={item}
+              <Layout style={{marginVertical: 10, alignItems: 'center', justifyContent: 'center'}}>
+
+                {
+                  (values.images.length === 0)
+                    ? <Image
+                      source={require('../../../assets/no-product-image.png')}
                       style={{ width: 300, height: 300, marginHorizontal: 7 }}
                     />
-                  )}
-                />
+                    : (
+
+                      <FlatList
+                        data={values.images}
+                        keyExtractor={(item) => item}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        renderItem={({ item }) => (
+                          <FadeInImage
+                            uri={item}
+                            style={{ width: 300, height: 300, marginHorizontal: 7 }}
+                          />
+                        )}
+                      />
+
+                    )
+                }
+
+
+
               </Layout>
 
 
@@ -117,12 +149,14 @@ export const ProductScreen = ({ route }: Props) => {
                   label='Precio'
                   value={`${values.price}`}
                   onChangeText={handleChange('price')}
+                  keyboardType='number-pad'
                   style={{ flex: 1 }}
                 />
                 <Input
                   label='Stock'
                   value={`${values.stock}`}
                   onChangeText={handleChange('stock')}
+                  keyboardType='number-pad'
                   style={{ flex: 1 }}
                 />
               </Layout>
@@ -139,8 +173,8 @@ export const ProductScreen = ({ route }: Props) => {
                       onPress={() => setFieldValue(
                         'sizes',
                         values.sizes.includes(size)
-                        ? values.sizes.filter(s => s !== size)
-                        : [...values.sizes, size]
+                          ? values.sizes.filter(s => s !== size)
+                          : [...values.sizes, size]
                       )}
                       key={size}
                       style={{
@@ -180,7 +214,8 @@ export const ProductScreen = ({ route }: Props) => {
               </ButtonGroup>
 
               <Button
-                onPress={() => console.log('Guardar')}
+                onPress={() => handleSubmit()}
+                disabled={mutation.isPending}
                 style={{ margin: 15 }}
                 accessoryLeft={<MyIcon name='save-outline' white />}
               >

@@ -37,7 +37,7 @@ export const authLogin = async (email: string, password: string) => {
 
 
     } catch (error) {
-        console.log(error)
+        console.log(error + ' on login')
         return null
     }
 };
