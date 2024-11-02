@@ -5,28 +5,59 @@ import { Product } from "../../domain/entities/product";
 
 
 export const updateCreateProduct = (product: Partial<Product>) => {
-    
+
     product.stock = isNaN(Number(product.stock)) ? 0 : Number(product.stock);
     product.price = isNaN(Number(product.price)) ? 0 : Number(product.price);
-    
-    
+
+
     if (product.id && product.id !== 'new') {
         // console.log('Lets update product')
         return updateProduct(product);
-    }
+    };
 
     return createProduct(product);
-    
+
 };
 
 
-const prepareImages = (images: string[]) => {
+const prepareImages = async(images: string[]) => {
 
-    return images.map(
+    const fileImages = images.filter(image => image.includes('file://'));
+    const currentImages = images.filter(image => !image.includes('file://'));
+
+    if (fileImages.length > 0) {
+        const uploadPromises = fileImages.map(uploadImage);
+        const uploadedImages = await Promise.all(uploadPromises);
+        currentImages.push(...uploadedImages);
+    };
+
+    return currentImages.map(
         image => image.split('/').pop()
-    )
+    );
 
-}
+};
+
+
+const uploadImage = async (image: string) => {
+    const formData = new FormData();
+
+    console.log('uploading image')
+
+    formData.append('file', {
+        uri: image,
+        type: 'image/jpeg',
+        name: image.split('/').pop()
+    });
+
+    const { data } = await tesloApi.post<{image: string}>('/files/product/', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        },
+    });
+
+
+    return data.image;
+};
 
 
 
@@ -36,12 +67,12 @@ const updateProduct = async (product: Partial<Product>) => {
 
 
     try {
-        const checkedImages = prepareImages(images);
+        const checkedImages = await prepareImages(images);
 
         const { data } = await tesloApi.patch(`/products/${id}`, {
             images: checkedImages,
             ...rest
-        })
+        });
 
         return data;
 
@@ -49,22 +80,22 @@ const updateProduct = async (product: Partial<Product>) => {
 
         if (isAxiosError(error)) {
             console.log(error.response?.data)
-        }
+        };
 
         console.log(error)
         throw new Error('Error al actualizar el producto')
-    }
+    };
 
-}
+};
 
 
-const createProduct = async(product: Partial<Product>):Promise<Product> => {
+const createProduct = async (product: Partial<Product>): Promise<Product> => {
 
     const { id, images = [], ...rest } = product;
 
 
     try {
-        const checkedImages = prepareImages(images);
+        const checkedImages = await prepareImages(images);
 
         const { data } = await tesloApi.post(`/products/`, {
             images: checkedImages,
@@ -77,10 +108,10 @@ const createProduct = async(product: Partial<Product>):Promise<Product> => {
 
         if (isAxiosError(error)) {
             console.log(error.response?.data)
-        }
+        };
 
         console.log(error)
         throw new Error('Error al crear el producto')
-    }
+    };
 
-}
+};

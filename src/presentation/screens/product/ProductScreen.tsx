@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { FlatList, Image } from 'react-native'
 import { MainLayout } from '../../layouts/MainLayout'
-import { Button, ButtonGroup, Input, Layout, Text, useTheme } from '@ui-kitten/components'
+import { Button, ButtonGroup, Input, Layout, useTheme } from '@ui-kitten/components'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getProductById } from '../../../actions/products/get-product-by-id'
 import { RootStackParams } from '../../navigation/StackNavigator'
@@ -12,6 +12,7 @@ import { Gender, Product, Size } from '../../../domain/entities/product';
 import { MyIcon } from '../../components/ui/MyIcon'
 import { Formik } from 'formik'
 import { updateCreateProduct } from '../../../actions/products/update-create-product'
+import { CameraAdapter } from '../../../config/adapters/camera-adapter'
 
 
 const sizes: Size[] = [
@@ -85,11 +86,19 @@ export const ProductScreen = ({ route }: Props) => {
           <MainLayout
             title={values.title}
             subTitle={`Precio: ${values.price}`}
+            rightAction={async () => {
+
+              // const photos = await CameraAdapter.takePicture();
+              const photos = await CameraAdapter.getPicturesFromLibrary();
+              setFieldValue('images', [...values.images, ...photos]);
+
+            }}
+            rightActionIcon='camera-outline'
           >
             <ScrollView style={{ flex: 1 }}>
 
               {/* Imagenes del producto */}
-              <Layout style={{marginVertical: 10, alignItems: 'center', justifyContent: 'center'}}>
+              <Layout style={{ marginVertical: 10, alignItems: 'center', justifyContent: 'center' }}>
 
                 {
                   (values.images.length === 0)
@@ -221,14 +230,6 @@ export const ProductScreen = ({ route }: Props) => {
               >
                 Guardar
               </Button>
-
-
-
-              <Text>{JSON.stringify(values, null, 2)}</Text>
-
-
-
-
 
               <Layout style={{ height: 200 }} />
 
